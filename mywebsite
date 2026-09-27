@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coin Catcher</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        background: #111827;
+        color: white;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .game-container {
+        width: 95%;
+        max-width: 700px;
+        text-align: center;
+    }
+
+    h1 {
+        margin-bottom: 10px;
+        font-size: 35px;
+    }
+
+    .stats {
+        display: flex;
+        justify-content: space-between;
+        background: #1f2937;
+        padding: 12px 20px;
+        border-radius: 12px 12px 0 0;
+        font-size: 18px;
+    }
+
+    #game {
+        position: relative;
+        width: 100%;
+        height: 500px;
+        background: linear-gradient(#172554, #0f172a);
+        border: 3px solid #374151;
+        overflow: hidden;
+        border-radius: 0 0 15px 15px;
+    }
+
+    #player {
+        position: absolute;
+        width: 55px;
+        height: 55px;
+        background: #38bdf8;
+        border-radius: 12px;
+        bottom: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        box-shadow: 0 0 20px #38bdf8;
+    }
+
+    .coin {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        background: gold;
+        border-radius: 50%;
+        box-shadow: 0 0 15px gold;
+    }
+
+    .game-over {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,.75);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .game-over h2 {
+        font-size: 40px;
+    }
+
+    button {
+        border: none;
+        padding: 12px 25px;
+        border-radius: 10px;
+        background: #22c55e;
+        color: white;
+        font-size: 17px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #16a34a;
+    }
+
+    .controls {
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .controls button {
+        width: 70px;
+        height: 55px;
+        font-size: 25px;
+        background: #374151;
+    }
+
+    .controls button:active {
+        background: #4b5563;
+    }
+
+    .instructions {
+        margin-top: 12px;
+        color: #9ca3af;
+        font-size: 14px;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="game-container">
+
+    <h1>🪙 Coin Catcher</h1>
+
+    <div class="stats">
+        <span>Score: <b id="score">0</b></span>
+        <span>High Score: <b id="highScore">0</b></span>
+        <span>Time: <b id="time">30</b></span>
+    </div>
+
+    <div id="game">
+
+        <div id="player"></div>
+
+        <div class="game-over" id="gameOver">
+            <h2>Game Over!</h2>
+            <p>Your score: <b id="finalScore">0</b></p>
+            <button onclick="restartGame()">Play Again</button>
+        </div>
+
+    </div>
+
+    <div class="controls">
+        <button onclick="moveLeft()">⬅️</button>
+        <button onclick="moveRight()">➡️</button>
+    </div>
+
+    <div class="instructions">
+        Use ← → keys or the buttons to move.
+        Catch the coins before time runs out!
+    </div>
+
+</div>
+
+<script>
+
+const game = document.getElementById("game");
+const player = document.getElementById("player");
+
+const scoreText = document.getElementById("score");
+const highScoreText = document.getElementById("highScore");
+const timeText = document.getElementById("time");
+
+const gameOverScreen = document.getElementById("gameOver");
+const finalScore = document.getElementById("finalScore");
+
+let score = 0;
+let time = 30;
+let playerX = 50;
+let gameRunning = true;
+
+let highScore = localStorage.getItem("coinHighScore") || 0;
+highScoreText.textContent = highScore;
+
+
+// Move player
+function moveLeft() {
+    if (!gameRunning) return;
+
+    playerX -= 7;
+
+    if (playerX < 5)
+        playerX = 5;
+
+    player.style.left = playerX + "%";
+}
+
+function moveRight() {
+    if (!gameRunning) return;
+
+    playerX += 7;
+
+    if (playerX > 95)
+        playerX = 95;
+
+    player.style.left = playerX + "%";
+}
+
+
+// Keyboard controls
+document.addEventListener("keydown", function(event) {
+
+    if (event.key === "ArrowLeft") {
+        moveLeft();
+    }
+
+    if (event.key === "ArrowRight") {
+        moveRight();
+    }
+
+});
+
+
+// Create coin
+function createCoin() {
+
+    if (!gameRunning) return;
+
+    const coin = document.createElement("div");
+
+    coin.classList.add("coin");
+
+    const x = Math.random() * 94;
+    const y = -40;
+
+    coin.style.left = x + "%";
+    coin.style.top = y + "px";
+
+    game.appendChild(coin);
+
+    let position = -40;
+
+    const fall = setInterval(() => {
+
+        if (!gameRunning) {
+            clearInterval(fall);
+            coin.remove();
+            return;
+        }
+
+        position += 4;
+
+        coin.style.top = position + "px";
+
+        const coinRect = coin.getBoundingClientRect();
+        const playerRect = player.getBoundingClientRect();
+
+        // Collision
+        if (
+            coinRect.bottom >= playerRect.top &&
+            coinRect.left < playerRect.right &&
+            coinRect.right > playerRect.left
+        ) {
+
+            score++;
+
+            scoreText.textContent = score;
+
+            coin.remove();
+            clearInterval(fall);
+
+            // Update high score
+            if (score > highScore) {
+
+                highScore = score;
+
+                localStorage.setItem(
+                    "coinHighScore",
+                    highScore
+                );
+
+                highScoreText.textContent = highScore;
+            }
+        }
+
+        // Remove coin
+        if (position > game.clientHeight) {
+
+            coin.remove();
+            clearInterval(fall);
+        }
+
+    }, 20);
+}
+
+
+// Spawn coins
+let coinSpawner = setInterval(() => {
+
+    createCoin();
+
+}, 700);
+
+
+// Timer
+let timer = setInterval(() => {
+
+    if (!gameRunning) return;
+
+    time--;
+
+    timeText.textContent = time;
+
+    if (time <= 0) {
+        endGame();
+    }
+
+}, 1000);
+
+
+// End game
+function endGame() {
+
+    gameRunning = false;
+
+    clearInterval(coinSpawner);
+
+    finalScore.textContent = score;
+
+    gameOverScreen.style.display = "flex";
+}
+
+
+// Restart
+function restartGame() {
+
+    location.reload();
+
+}
+
+</script>
+
+</body>
+</html>
